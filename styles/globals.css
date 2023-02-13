@@ -105,3 +105,30 @@ a {
     color-scheme: dark;
   }
 }
+
+.ant-picker {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.ant-input {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.ant-skeleton {
+  margin-top: 30px;
+}
+
+.anticon {
+  margin-top: unset !important;
+  cursor: pointer;
+}
+
+.ml-10 {
+  margin-left: 10px;
+}
+
+.ant-table-column-sorter, .ant-table-column-sorter-inner, .ant-table-column-title {
+  margin-top: unset !important;
+}
