@@ -1,12 +1,15 @@
 import Head from "next/head";
 import { Inter } from "@next/font/google";
 import styles from "@/styles/Home.module.css";
-import { Table, Skeleton, TableProps  } from "antd";
-import { useEffect, useState } from "react";
+import { Table, Input, notification  } from "antd";
+import { ChangeEvent, SyntheticEvent, useEffect, useState } from "react";
 import ModalsForm from "@/components/Modal";
-import { TypeBlog } from "@/type/type";
+import { TypeBlog, SearchType } from "@/type/type";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import moment from "moment";
+import Fuse from "fuse.js";
+import { debounce } from "lodash";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,6 +17,15 @@ export default function Home() {
   const [listBlogs, setListBlogs] = useState<TypeBlog[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState<TypeBlog>();
+
+  const options = {
+    isCaseSensitive: true,
+    includeMatches: false,
+    // Search in "title", "content","createdBy","createdAt"
+    keys: ["title", "content", "createdBy", "createdAt"],
+  };
+
+  const fuse = new Fuse(listBlogs, options);
 
   //trigger modal
   const setOpenModal = (value: boolean) => {
@@ -26,6 +38,23 @@ export default function Home() {
     result.push(data);
     setListBlogs([...listBlogs, ...result]);
     localStorage.setItem("blogs", JSON.stringify(listBlogs.concat(result)));
+  };
+
+  const debouncedSearch = debounce(async (criteria) => {
+    if (!criteria) return;
+    const result = fuse.search(criteria);
+    convertListBlogs(result);
+  }, 1000);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    debouncedSearch(e.target.value);
+  };
+
+  const convertListBlogs = (result: SearchType[]) => {
+    let list = result.map((data, index) => {
+      return data.item;
+    });
+    setListBlogs(list);
   };
 
   useEffect(() => {
@@ -60,18 +89,21 @@ export default function Home() {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
-      sorter: (a: any, b: any) => moment(a.createdAt).unix() - moment(b.createdAt).unix(),
-      defaultSortOrder: 'descend',
+      sorter: (a: any, b: any) =>
+        moment(a.createdAt).unix() - moment(b.createdAt).unix(),
+      defaultSortOrder: "descend",
       ellipsis: true,
     },
     {
       title: "Edit",
       dataIndex: "edit",
       key: "edit",
-      onRow: (record: any) => {
+      onCell: (record: any) => {
         return {
           onClick: () => {
-            console.log(record);
+            const foundData = listBlogs.find((element) => element.id === record.id);
+            setShowModal(true)
+            setEditData(foundData)
           },
         };
       },
@@ -85,10 +117,12 @@ export default function Home() {
       title: "Delete",
       dataIndex: "delete",
       key: "delete",
-      onRow: (record: any) => {
+      onCell: (record: any) => {
         return {
           onClick: () => {
-            console.log(record);
+            let result = listBlogs.filter((element) => element.id !== record.id);
+            setListBlogs(result);
+            localStorage.setItem("blogs", JSON.stringify(result));
           },
         };
       },
@@ -111,12 +145,15 @@ export default function Home() {
       <main className={styles.main}>
         <div className={styles.description}>
           <h6>Blogs attributes</h6>
-          <button onClick={() => setShowModal(true)}>Create Blog</button>
+          <div className={styles.searchBox}>
+            <button onClick={() => setShowModal(true)}>Create Blog</button>
+            <Input placeholder='Search Blog' onChange={handleChange} />
+          </div>
           <Table
             dataSource={listBlogs}
             columns={columns}
             pagination={false}
-            rowKey={(r) => r.id}
+            rowKey={(r: { id: number }) => r.id}
           />
         </div>
 

@@ -61,6 +61,7 @@ export default function ModalsForm({
 
   useEffect(() => {
     if (editData) {
+      console.log("editData", editData)
       let { id, title, content, createdBy, createdAt } = editData;
       setDataBlog({
         id: id,

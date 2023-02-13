@@ -46,3 +46,12 @@
   margin-top: unset;
 }
 
+.searchBox {
+  display: flex;
+  justify-content: space-between;
+}
+
+.searchBox input {
+  width: 500px;
+  margin-top: 30px;
+}

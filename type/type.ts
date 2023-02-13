@@ -5,3 +5,8 @@ export type TypeBlog = {
     createdBy: string,
     createdAt: string | null,
 }
+
+export type SearchType = {
+    item: TypeBlog,
+    refIndex: number
+}
