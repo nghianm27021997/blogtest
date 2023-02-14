@@ -1,10 +1,11 @@
-import styles from "@/styles/Home.module.css";
-import { TypeBlog } from "@/type/type";
-import { Input, Modal, DatePicker, Form } from "antd";
 import { ChangeEvent, useEffect, useState } from "react";
-import dayjs from "dayjs";
+import { DatePicker, Form, Input, Modal } from "antd";
+
 import type { Dayjs } from "dayjs";
+import { TypeBlog } from "@/type/type";
+import dayjs from "dayjs";
 import moment from "moment";
+import styles from "@/styles/Home.module.css";
 
 type Props = {
   dataLength: number;
@@ -12,6 +13,7 @@ type Props = {
   editData?: TypeBlog;
   setOpen: (value: boolean) => void;
   createBlog: (value: TypeBlog) => void;
+  updateBlog: (value: TypeBlog) => void;
 };
 
 export default function ModalsForm({
@@ -19,6 +21,7 @@ export default function ModalsForm({
   setOpen,
   createBlog,
   editData,
+  updateBlog,
   dataLength
 }: Props) {
   const [confirmLoading, setConfirmLoading] = useState(false);
@@ -37,11 +40,8 @@ export default function ModalsForm({
     setDataBlog({ ...dataBlog, [name]: value });
   };
 
-  const handleDateChange = (
-    dates: null | (Dayjs | null)[],
-    dateStrings: string[]
-  ) => {
-    setDataBlog({ ...dataBlog, createdAt: dateStrings.toString() });
+  const handleDateChange = (value: Dayjs | null, dateString: string) => {
+    setDataBlog({ ...dataBlog, createdAt: dateString.toString() });
   };
 
   const handleCancel = () => {
@@ -52,45 +52,46 @@ export default function ModalsForm({
   const onCheck = async () => {
     try {
       const values = await form.validateFields();
-      createBlog(dataBlog);
+      if(editData?.title == "") {
+        createBlog(dataBlog);
+      } else {
+        updateBlog(dataBlog);
+      }
       setOpen(false);
     } catch (errorInfo) {
       console.log("Failed:", errorInfo);
     }
   };
 
-  useEffect(() => {
-    if (editData) {
-      console.log("editData", editData)
-      let { id, title, content, createdBy, createdAt } = editData;
-      setDataBlog({
-        id: id,
-        title: title,
-        content: content,
-        createdBy: createdBy,
-        createdAt: createdAt,
-      });
-    } else {
-      setDataBlog({...dataBlog, id: dataLength + 1})
+  const convertData = (data?: TypeBlog) => {
+    if (data?.title !== "") {
+      return { ...data, createdAt: moment(data?.createdAt, 'YYYY-MM-DD') }
     }
-  }, [showModal]);
+    return data
+  }
+
+  useEffect(() => {
+    form.setFieldsValue(convertData(editData))
+    if(editData) setDataBlog(editData)
+   }, [form, editData])
 
   return (
     <Modal
-      title='Create Blog'
+      title={editData?.title == "" ? 'Create Blog' : 'Edit Blog'}
       open={showModal}
       onOk={onCheck}
       confirmLoading={confirmLoading}
       onCancel={handleCancel}
     >
-      <Form form={form} name='dynamic_rule' style={{ maxWidth: 600 }}>
-        <Input
-          onChange={handdleChange}
-          name='id'
-          placeholder='ID'
-          value={dataBlog.id}
-          disabled
-        />
+      <Form form={form} name='dynamic_rule' style={{ maxWidth: 600 }} initialValues={convertData(editData)}>
+        <Form.Item name='id'>
+          <Input
+            onChange={handdleChange}
+            name='id'
+            placeholder='ID'
+            disabled
+          />
+        </Form.Item>
         <Form.Item
           name='title'
           rules={[{ required: true, message: "Please input title" }]}
@@ -99,7 +100,6 @@ export default function ModalsForm({
             onChange={handdleChange}
             name='title'
             placeholder='Title'
-            value={dataBlog.title}
           />
         </Form.Item>
         <Form.Item
@@ -108,7 +108,6 @@ export default function ModalsForm({
         >
           <Input
             onChange={handdleChange}
-            value={dataBlog.content}
             name='content'
             placeholder='Blog Content'
           />
@@ -120,7 +119,6 @@ export default function ModalsForm({
           <Input
             onChange={handdleChange}
             name='createdBy'
-            value={dataBlog.createdBy}
             placeholder='Created By'
           />
         </Form.Item>
@@ -129,7 +127,6 @@ export default function ModalsForm({
           rules={[{ required: true, message: "Please input date" }]}
         >
           <DatePicker
-            value={null}
             onChange={handleDateChange}
             placeholder='Created At'
           />

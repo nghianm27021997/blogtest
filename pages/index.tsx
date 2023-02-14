@@ -1,17 +1,16 @@
-import Head from "next/head";
-import { Inter } from "@next/font/google";
-import styles from "@/styles/Home.module.css";
-import { Table, Input, notification  } from "antd";
 import { ChangeEvent, SyntheticEvent, useEffect, useState } from "react";
-import ModalsForm from "@/components/Modal";
-import { TypeBlog, SearchType } from "@/type/type";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import moment from "moment";
+import { Input, Table, notification } from "antd";
+import { SearchType, TypeBlog } from "@/type/type";
+import { ToastContainer, toast } from 'react-toastify';
+import { debounce, isEmpty } from "lodash";
+
 import Fuse from "fuse.js";
-import { debounce } from "lodash";
-
-
-const inter = Inter({ subsets: ["latin"] });
+import Head from "next/head";
+import ModalsForm from "@/components/Modal";
+import { NewLineKind } from "typescript";
+import moment from "moment";
+import styles from "@/styles/Home.module.css";
 
 export default function Home() {
   const [listBlogs, setListBlogs] = useState<TypeBlog[]>([]);
@@ -24,6 +23,12 @@ export default function Home() {
     // Search in "title", "content","createdBy","createdAt"
     keys: ["title", "content", "createdBy", "createdAt"],
   };
+
+  const toastNotification = (value: string) => {
+    toast.success(value, {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  }
 
   const fuse = new Fuse(listBlogs, options);
 
@@ -38,6 +43,19 @@ export default function Home() {
     result.push(data);
     setListBlogs([...listBlogs, ...result]);
     localStorage.setItem("blogs", JSON.stringify(listBlogs.concat(result)));
+    toastNotification("Create blog successfully!")
+  };
+
+  //update blog
+  const updateBlog = (data: TypeBlog) => {
+    let result = listBlogs.findIndex(item => item.id === data.id);
+    listBlogs[result].title = data.title
+    listBlogs[result].content = data.content
+    listBlogs[result].createdBy = data.createdBy
+    listBlogs[result].createdAt = data.createdAt
+    setListBlogs(listBlogs)
+    localStorage.setItem("blogs", JSON.stringify(listBlogs));
+    toastNotification("Edit blog successfully!")
   };
 
   const debouncedSearch = debounce(async (criteria) => {
@@ -56,6 +74,25 @@ export default function Home() {
     });
     setListBlogs(list);
   };
+
+  const newId = (arr: TypeBlog[]) => {
+    if(isEmpty(arr)) return 1
+    const max = Math.max(...arr.map(item => {
+      return item.id;
+    }));
+    return max + 1
+  }
+
+  const newBlog = () => {
+    setEditData({
+      id: newId(listBlogs),
+      title: "",
+      content: "",
+      createdBy: "",
+      createdAt: null,
+    })
+    setOpenModal(true)
+  }
 
   useEffect(() => {
     if (!localStorage.getItem("blogs")) {
@@ -123,6 +160,7 @@ export default function Home() {
             let result = listBlogs.filter((element) => element.id !== record.id);
             setListBlogs(result);
             localStorage.setItem("blogs", JSON.stringify(result));
+            toastNotification("Delete blog successfully!")
           },
         };
       },
@@ -146,7 +184,7 @@ export default function Home() {
         <div className={styles.description}>
           <h6>Blogs attributes</h6>
           <div className={styles.searchBox}>
-            <button onClick={() => setShowModal(true)}>Create Blog</button>
+            <button onClick={newBlog}>Create Blog</button>
             <Input placeholder='Search Blog' onChange={handleChange} />
           </div>
           <Table
@@ -161,6 +199,7 @@ export default function Home() {
           showModal={showModal}
           setOpen={setOpenModal}
           createBlog={createBlog}
+          updateBlog={updateBlog}
           editData={editData}
           dataLength={listBlogs.length}
         />
